@@ -1,0 +1,13 @@
+# Set index.php as default
+DirectoryIndex index.php
+
+# Enable URL rewriting
+RewriteEngine On
+RewriteBase /project/public/
+
+# If the file or folder exists, serve it directly
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Otherwise, send everything to index.php
+RewriteRule ^ index.php [L]
