@@ -1,22 +1,24 @@
 <?php
 session_start();
-$timeout = 120; // 2 min
+
+$timeout = 120;
 $flashMessage = '';
 
-$_SESSION['last_activity'] = time();
 if (isset($_SESSION['last_activity'])) {
     $inactive = time() - $_SESSION['last_activity'];
+
     if ($inactive >= $timeout) {
         session_unset();
         session_destroy();
         $flashMessage = "You were logged out due to inactivity.";
-        session_start(); // restart session to show message
+        session_start();
         $_SESSION['flash'] = $flashMessage;
         header("Location: index.php");
         exit;
     }
 }
 
+$_SESSION['last_activity'] = time();
 
 require_once __DIR__ . '/../app/config/Database.php';
 require_once __DIR__ . '/../app/models/User.php';
@@ -34,11 +36,9 @@ $userController = new UserController($db);
 $taskController = new TaskController($db);
 $dashboardController = new DashboardController($db);
 
-//Default controller
 $controllerName = $_GET['controller'] ?? 'Auth';
 $action = $_GET['action'] ?? 'login';
 
-// --- Dispatch ---
 switch ($controllerName) {
     case 'Auth':
         if (method_exists($authController, $action)) {
@@ -83,7 +83,6 @@ switch ($controllerName) {
         break;
 }
 
-// --- Show flash message if exists ---
 if (!empty($_SESSION['flash'])) {
     echo "<div style='position:fixed; top:20px; right:20px; background:#f8d7da; color:#721c24; padding:10px 20px; border-radius:5px; border:1px solid #f5c6cb; font-weight:bold; z-index:1000;'>";
     echo $_SESSION['flash'];
