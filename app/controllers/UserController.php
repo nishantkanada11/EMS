@@ -36,14 +36,13 @@ class UserController
         include __DIR__ . '/../views/users/index.php';
     }
 
-    // Show create user form (Admin + TL)
     public function create()
     {
         $this->checkAccess(['admin', 'tl']);
         include __DIR__ . '/../views/users/create.php';
     }
 
-    // Store new user and send email
+
     public function store()
     {
         $this->checkAccess(['admin', 'tl']);
@@ -57,7 +56,7 @@ class UserController
         $userRole = $_POST['role'] ?? 'employee';
 
         if ($_SESSION['user']['role'] === 'tl') {
-            $userRole = 'employee'; // TL cannot create TL/admin
+            $userRole = 'employee'; 
         }
 
         if (!$name || !$email || !$mobile || !$password || !$department) {
@@ -72,7 +71,6 @@ class UserController
             exit;
         }
 
-        // **Send email with credentials**
         if ($result) {
             $emailSent = sendUserCredentials($email, $name, $password);
             if (!$emailSent) {
@@ -81,7 +79,6 @@ class UserController
             }
         }
 
-        // Redirect based on role
         if ($_SESSION['user']['role'] === 'tl') {
             header("Location: index.php?controller=User&action=team");
         } else {
@@ -90,7 +87,6 @@ class UserController
         exit;
     }
 
-    // Edit user
     public function edit()
     {
         $id = (int) ($_GET['id'] ?? 0);
@@ -111,7 +107,6 @@ class UserController
         include __DIR__ . '/../views/users/edit.php';
     }
 
-    // Update user
     public function update()
     {
         $id = (int) ($_POST['id'] ?? 0);
@@ -207,7 +202,7 @@ class UserController
         include __DIR__ . '/../views/users/teams_overview.php';
     }
 
-    // TL views their own team
+    // TL viewown team
     public function myTeam()
     {
         $this->checkAccess(['tl']);
