@@ -111,7 +111,7 @@ class User
 
     public function getEmployeeCount()
     {
-        $res = $this->conn->query("SELECT COUNT(*) AS total FROM users WHERE role IN ('employee','tl')");
+        $res = $this->conn->query("SELECT COUNT(*) AS total FROM users WHERE role IN ('employee','tl','admin')");
         $row = $res->fetch_assoc();
         return $row['total'] ?? 0;
     }
