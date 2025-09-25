@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../models/Task.php';
+require_once __DIR__ . '/../helpers/email.php'; // ✅ use common email helper
 
 class TaskController
 {
@@ -14,7 +15,6 @@ class TaskController
 
     /**
      * Helper to check user access based on roles
-     * @param array $allowedRoles
      */
     private function checkAccess(array $allowedRoles)
     {
@@ -25,6 +25,9 @@ class TaskController
         }
     }
 
+    /**
+     * Show task list
+     */
     public function index()
     {
         $role = $_SESSION['user']['role'] ?? '';
@@ -39,6 +42,9 @@ class TaskController
         include __DIR__ . '/../views/tasks/index.php';
     }
 
+    /**
+     * Show create form
+     */
     public function create()
     {
         $this->checkAccess(['admin', 'tl']);
@@ -51,16 +57,19 @@ class TaskController
         include __DIR__ . '/../views/tasks/create.php';
     }
 
+    /**
+     * Store new task + send email
+     */
     public function store()
     {
         $this->checkAccess(['admin', 'tl']);
 
-        $title = trim($_POST['title'] ?? '');
+        $title       = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $assigned_to = isset($_POST['assigned_to']) ? (int) $_POST['assigned_to'] : null;
-        $start_date = $_POST['start_date'] ?? '';
-        $due_date = $_POST['due_date'] ?? '';
-        $status = 'pending';
+        $start_date  = $_POST['start_date'] ?? '';
+        $due_date    = $_POST['due_date'] ?? '';
+        $status      = 'pending';
 
         if (!$title || !$description || !$start_date || !$due_date) {
             echo "<script>alert('Please fill all required fields'); window.history.back();</script>";
@@ -69,10 +78,24 @@ class TaskController
 
         $this->taskModel->create($title, $description, $assigned_to, $status, $start_date, $due_date);
 
+        // ✅ Send email to assigned employee
+        $stmt = $this->conn->prepare("SELECT name, email FROM users WHERE id=?");
+        $stmt->bind_param("i", $assigned_to);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+
+        if ($user) {
+            sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
+        }
+
         header("Location: index.php?controller=Task&action=index");
         exit;
     }
 
+    /**
+     * Show edit form
+     */
     public function edit()
     {
         $this->checkAccess(['admin', 'tl']);
@@ -93,6 +116,9 @@ class TaskController
         include __DIR__ . '/../views/tasks/edit.php';
     }
 
+    /**
+     * Update task + send email if reassigned
+     */
     public function update()
     {
         $this->checkAccess(['admin', 'tl']);
@@ -104,12 +130,12 @@ class TaskController
             exit;
         }
 
-        $title = trim($_POST['title'] ?? '');
+        $title       = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $assigned_to = isset($_POST['assigned_to']) ? (int) $_POST['assigned_to'] : null;
-        $status = $_POST['status'] ?? 'pending';
-        $start_date = $_POST['start_date'] ?? '';
-        $due_date = $_POST['due_date'] ?? '';
+        $status      = $_POST['status'] ?? 'pending';
+        $start_date  = $_POST['start_date'] ?? '';
+        $due_date    = $_POST['due_date'] ?? '';
 
         if (!$title || !$description || !$start_date || !$due_date) {
             echo "<script>alert('Please fill all required fields'); window.history.back();</script>";
@@ -118,13 +144,27 @@ class TaskController
 
         $this->taskModel->update($id, $title, $description, $assigned_to, $status, $start_date, $due_date);
 
+        // ✅ Send email if task was reassigned
+        $stmt = $this->conn->prepare("SELECT name, email FROM users WHERE id=?");
+        $stmt->bind_param("i", $assigned_to);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+
+        if ($user) {
+            sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
+        }
+
         header("Location: index.php?controller=Task&action=index");
         exit;
     }
 
+    /**
+     * Update only status (employee/admin/tl)
+     */
     public function updateStatus()
     {
-        $id = (int) ($_POST['id'] ?? 0);
+        $id     = (int) ($_POST['id'] ?? 0);
         $status = $_POST['status'] ?? 'pending';
 
         $task = $this->taskModel->find($id);
@@ -133,8 +173,7 @@ class TaskController
             exit;
         }
 
-        // Only admin/tl can update anyone, employee only own task
-        $role = $_SESSION['user']['role'] ?? '';
+        $role   = $_SESSION['user']['role'] ?? '';
         $userId = $_SESSION['user']['id'] ?? 0;
 
         if ($role === 'employee' && $task['assigned_to'] != $userId) {
@@ -148,6 +187,9 @@ class TaskController
         exit;
     }
 
+    /**
+     * Delete task
+     */
     public function delete()
     {
         $this->checkAccess(['admin', 'tl']);

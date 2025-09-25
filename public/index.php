@@ -3,6 +3,7 @@ session_start();
 $timeout = 120; // 2 min
 $flashMessage = '';
 
+$_SESSION['last_activity'] = time();
 if (isset($_SESSION['last_activity'])) {
     $inactive = time() - $_SESSION['last_activity'];
     if ($inactive >= $timeout) {
@@ -15,7 +16,7 @@ if (isset($_SESSION['last_activity'])) {
         exit;
     }
 }
-$_SESSION['last_activity'] = time();
+
 
 require_once __DIR__ . '/../app/config/Database.php';
 require_once __DIR__ . '/../app/models/User.php';

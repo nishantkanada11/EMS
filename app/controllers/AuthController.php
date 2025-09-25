@@ -18,8 +18,8 @@ class AuthController
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        $email = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
+        $email = trim($_POST['email']);
+        $password = $_POST['password'];
         $user = $this->userModel->findByEmail($email);
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user'] = [
