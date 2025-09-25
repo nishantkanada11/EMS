@@ -202,7 +202,7 @@ class UserController
         include __DIR__ . '/../views/users/teams_overview.php';
     }
 
-    // TL viewown team
+    // TL views their own team
     public function myTeam()
     {
         $this->checkAccess(['tl']);

@@ -30,7 +30,7 @@
     <input type="text" name="department" value="<?= htmlspecialchars($user['department']); ?>"><br><br>
 
     <label>New Password (leave blank to keep current):</label><br>
-    <input type="password" name="password"><br><br>
+    <input type="text" name="password"><br><br>
 
     <button type="submit">Update User</button>
 </form>

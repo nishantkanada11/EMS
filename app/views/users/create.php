@@ -24,7 +24,7 @@
 
     <div class="form-group">
         <label>Password</label>
-        <input type="password" name="password" required class="form-control">
+        <input type="text" name="password" required class="form-control">
     </div>
 
     <div class="form-group">
