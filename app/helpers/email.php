@@ -29,7 +29,7 @@ function sendUserCredentials($toEmail, $userName, $password)
         $mail->Port       = 587;
 
         // Recipients
-        $mail->setFrom('your_email@gmail.com', 'Admin');
+        $mail->setFrom($toEmail, 'Admin');
         $mail->addAddress($toEmail, $userName);
 
         // Content
