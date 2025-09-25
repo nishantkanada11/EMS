@@ -43,7 +43,6 @@ class User
         return $stmt->get_result()->fetch_assoc();
     }
 
-    // Find useremail (for login)
     public function findByEmail(string $email)
     {
         $stmt = $this->conn->prepare("SELECT * FROM users WHERE email = ?");
@@ -126,7 +125,6 @@ class User
         return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
     }
 
-    // Assign employee to TL
     public function assignToTL(int $employeeId, int $tlId)
     {
         $stmt = $this->conn->prepare("UPDATE users SET tl_id=? WHERE id=? AND role='employee'");
