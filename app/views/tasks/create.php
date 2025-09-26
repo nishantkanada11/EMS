@@ -7,13 +7,13 @@
 
 <form method="POST" action="index.php?controller=Task&action=store" onsubmit="return validateDates()">
     <label>Task Title:</label><br>
-    <input type="text" name="title" required><br><br>
+    <input type="text" name="title"><br><br>
 
     <label>Description:</label><br>
-    <textarea name="description" required></textarea><br><br>
+    <textarea name="description"></textarea><br><br>
 
     <label for="assigned_to">Assign To:</label>
-    <select name="assigned_to" id="assigned_to" required>
+    <select name="assigned_to" id="assigned_to">
         <option value="">-- Select Employee --</option>
         <?php foreach ($employees as $employee): ?>
             <option value="<?= $employee['id']; ?>"><?= htmlspecialchars($employee['name']); ?></option>
@@ -22,10 +22,10 @@
 
 
     <label>Start Date:</label><br>
-    <input type="date" id="start_date" name="start_date" min="<?= date('Y-m-d') ?>" required>
+    <input type="date" id="start_date" name="start_date" min="<?= date('Y-m-d') ?>">
 
     <label>Due Date:</label><br>
-    <input type="date" id="due_date" name="due_date" min="<?= date('Y-m-d') ?>" required>
+    <input type="date" id="due_date" name="due_date" min="<?= date('Y-m-d') ?>">
 
     <button type="submit">Create Task</button>
 </form>

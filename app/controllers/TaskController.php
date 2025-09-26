@@ -1,16 +1,17 @@
 <?php
 require_once __DIR__ . '/../models/Task.php';
+require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../helpers/email.php';
 
 class TaskController
 {
     private $taskModel;
-    private $conn;
+    private $userModel;
 
-    public function __construct($conn)
+    public function __construct($db)
     {
-        $this->conn = $conn;
-        $this->taskModel = new Task($conn);
+        $this->taskModel = new Task($db);
+        $this->userModel = new User($db);
     }
 
     private function checkAccess(array $allowedRoles)
@@ -27,11 +28,9 @@ class TaskController
         $role = $_SESSION['user']['role'] ?? '';
         $userId = $_SESSION['user']['id'] ?? 0;
 
-        if (in_array($role, ['admin', 'tl'])) {
-            $tasks = $this->taskModel->all();
-        } else {
-            $tasks = $this->taskModel->findByUser($userId);
-        }
+        $tasks = in_array($role, ['admin', 'tl'])
+            ? $this->taskModel->all()
+            : $this->taskModel->findByUser($userId);
 
         include __DIR__ . '/../views/tasks/index.php';
     }
@@ -39,15 +38,9 @@ class TaskController
     public function create()
     {
         $this->checkAccess(['admin', 'tl']);
-
-        $stmt = $this->conn->prepare("SELECT id, name FROM users WHERE role IN ('employee','tl')");
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $employees = $result->fetch_all(MYSQLI_ASSOC);
-
+        $employees = $this->userModel->getAssignableUsers();
         include __DIR__ . '/../views/tasks/create.php';
     }
-
 
     public function store()
     {
@@ -58,23 +51,24 @@ class TaskController
         $assigned_to = isset($_POST['assigned_to']) ? (int) $_POST['assigned_to'] : null;
         $start_date = $_POST['start_date'] ?? '';
         $due_date = $_POST['due_date'] ?? '';
-        $status = 'pending';
 
         if (!$title || !$description || !$start_date || !$due_date) {
             echo "<script>alert('Please fill all required fields'); window.history.back();</script>";
             exit;
         }
 
-        $this->taskModel->create($title, $description, $assigned_to, $status, $start_date, $due_date);
+        $this->taskModel->create($title, $description, $assigned_to, 'pending', $start_date, $due_date);
 
-        $stmt = $this->conn->prepare("SELECT name, email FROM users WHERE id=?");
-        $stmt->bind_param("i", $assigned_to);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
+        if (!$assigned_to) {
+            echo "<script>alert('Please assign the task to a user'); window.history.back();</script>";
+            exit;
+        }
 
-        if ($user) {
-            sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
+        if ($assigned_to) {
+            $user = $this->userModel->find($assigned_to);
+            if ($user) {
+                sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
+            }
         }
 
         header("Location: index.php?controller=Task&action=index");
@@ -84,7 +78,6 @@ class TaskController
     public function edit()
     {
         $this->checkAccess(['admin', 'tl']);
-
         $id = (int) ($_GET['id'] ?? 0);
         $task = $this->taskModel->find($id);
 
@@ -93,21 +86,16 @@ class TaskController
             exit;
         }
 
-        $stmt = $this->conn->prepare("SELECT id, name FROM users WHERE role IN ('employee','tl')");
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $employees = $result->fetch_all(MYSQLI_ASSOC);
-
+        $employees = $this->userModel->getAssignableUsers();
         include __DIR__ . '/../views/tasks/edit.php';
     }
-
 
     public function update()
     {
         $this->checkAccess(['admin', 'tl']);
-
         $id = (int) ($_POST['id'] ?? 0);
         $task = $this->taskModel->find($id);
+
         if (!$task) {
             echo "<script>alert('Task not found'); window.history.back();</script>";
             exit;
@@ -127,15 +115,11 @@ class TaskController
 
         $this->taskModel->update($id, $title, $description, $assigned_to, $status, $start_date, $due_date);
 
-        //mail if task was reassigned
-        $stmt = $this->conn->prepare("SELECT name, email FROM users WHERE id=?");
-        $stmt->bind_param("i", $assigned_to);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
-
-        if ($user) {
-            sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
+        if ($assigned_to) {
+            $user = $this->userModel->find($assigned_to);
+            if ($user) {
+                sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
+            }
         }
 
         header("Location: index.php?controller=Task&action=index");
@@ -146,8 +130,8 @@ class TaskController
     {
         $id = (int) ($_POST['id'] ?? 0);
         $status = $_POST['status'] ?? 'pending';
-
         $task = $this->taskModel->find($id);
+
         if (!$task) {
             echo "<script>alert('Task not found'); window.history.back();</script>";
             exit;
@@ -162,23 +146,22 @@ class TaskController
         }
 
         $this->taskModel->updateStatus($id, $status);
-
         header("Location: index.php?controller=Task&action=index");
         exit;
     }
+
     public function delete()
     {
         $this->checkAccess(['admin', 'tl']);
-
         $id = (int) ($_GET['id'] ?? 0);
         $task = $this->taskModel->find($id);
+
         if (!$task) {
             echo "<script>alert('Task not found'); window.history.back();</script>";
             exit;
         }
 
         $this->taskModel->delete($id);
-
         header("Location: index.php?controller=Task&action=index");
         exit;
     }

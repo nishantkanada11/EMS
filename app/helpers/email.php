@@ -21,12 +21,12 @@ function sendUserCredentials($toEmail, $userName, $password)
     try {
         // Server settings
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';         // Your SMTP server
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'nishantkanada9@gmail.com';  // Your email
-        $mail->Password   = 'ymhx jyzn uwol jyau';     // App password
+        $mail->Host = 'smtp.gmail.com';         // Your SMTP server
+        $mail->SMTPAuth = true;
+        $mail->Username = 'nishantkanada9@gmail.com';  // Your email
+        $mail->Password = 'ymhx jyzn uwol jyau';     // App password
         $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
+        $mail->Port = 587;
 
         // Recipients
         $mail->setFrom($toEmail, 'Admin');
@@ -35,7 +35,7 @@ function sendUserCredentials($toEmail, $userName, $password)
         // Content
         $mail->isHTML(true);
         $mail->Subject = 'Your Account Details';
-        $mail->Body    = "
+        $mail->Body = "
             <h3>Welcome to the System</h3>
             <p>Your account has been created successfully.</p>
             <p><strong>Email:</strong> $toEmail</p>
@@ -67,12 +67,12 @@ function sendTaskAssignedEmail($toEmail, $toName, $title, $description, $start_d
     try {
         // Server settings
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'nishantkanada9@gmail.com';   // your Gmail
-        $mail->Password   = 'ymhx jyzn uwol jyau';       // app password
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'nishantkanada9@gmail.com';   // your Gmail
+        $mail->Password = 'ymhx jyzn uwol jyau';       // app password
         $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
+        $mail->Port = 587;
 
         // Recipients
         $mail->setFrom('your_email@gmail.com', 'Task Manager');
@@ -81,7 +81,7 @@ function sendTaskAssignedEmail($toEmail, $toName, $title, $description, $start_d
         // Content
         $mail->isHTML(true);
         $mail->Subject = "New Task Assigned: $title";
-        $mail->Body    = "
+        $mail->Body = "
             <h3>Hello $toName,</h3>
             <p>You have been assigned a new task. Here are the details:</p>
             <ul>
@@ -99,4 +99,3 @@ function sendTaskAssignedEmail($toEmail, $toName, $title, $description, $start_d
         return false;
     }
 }
-

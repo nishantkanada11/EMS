@@ -9,27 +9,27 @@
 <form method="POST" action="index.php?controller=User&action=store">
     <div class="form-group">
         <label>Full Name</label>
-        <input type="text" name="name" required class="form-control">
+        <input type="text" name="name" class="form-control">
     </div>
 
     <div class="form-group">
         <label>Email</label>
-        <input type="email" name="email" required class="form-control">
+        <input type="email" name="email" class="form-control">
     </div>
 
     <div class="form-group">
         <label>Mobile</label>
-        <input type="text" name="mobile" required class="form-control">
+        <input type="text" name="mobile" class="form-control">
     </div>
 
     <div class="form-group">
         <label>Password</label>
-        <input type="text" name="password" required class="form-control">
+        <input type="text" name="password" class="form-control">
     </div>
 
     <div class="form-group">
         <label>Department</label>
-        <input type="text" name="department" required class="form-control">
+        <input type="text" name="department" class="form-control">
     </div>
 
     <div class="form-group">

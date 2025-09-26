@@ -13,17 +13,28 @@ class DashboardController
         $this->taskModel = new Task($db);
     }
 
+    private function checkAccess(array $roles)
+    {
+        $role = $_SESSION['user']['role'] ?? '';
+        if (!in_array($role, $roles)) {
+            echo "<script>alert('Access denied'); window.history.back();</script>";
+            exit;
+        }
+    }
+
     public function index()
     {
-        if ($_SESSION['user']['role'] !== 'admin') {
-            echo "Access denied.";
-            return;
+        $this->checkAccess(['admin']);
+
+        try {
+            $totalEmployees = $this->userModel->getEmployeeCount();
+            $totalTasks = $this->taskModel->getTaskCount();
+            $taskStatusCounts = $this->taskModel->getTaskStatusCounts();
+
+            include __DIR__ . '/../views/dashboard/index.php';
+        } catch (Exception $e) {
+            error_log("DashboardController::index error: " . $e->getMessage());
+            echo "<script>alert('Failed to load dashboard'); window.history.back();</script>";
         }
-
-        $totalEmployees = $this->userModel->getEmployeeCount();
-        $totalTasks = $this->taskModel->getTaskCount();
-        $taskStatusCounts = $this->taskModel->getTaskStatusCounts();
-
-        include __DIR__ . '/../views/dashboard/index.php';
     }
 }
