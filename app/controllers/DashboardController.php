@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/Task.php';
+require_once __DIR__ . '/../helpers/flash.php';
 
 class DashboardController
 {
@@ -17,7 +18,8 @@ class DashboardController
     {
         $role = $_SESSION['user']['role'] ?? '';
         if (!in_array($role, $roles)) {
-            echo "<script>alert('Access denied'); window.history.back();</script>";
+            setFlash('error', 'Access denied');
+            header("Location: index.php");
             exit;
         }
     }
@@ -34,7 +36,9 @@ class DashboardController
             include __DIR__ . '/../views/dashboard/index.php';
         } catch (Exception $e) {
             error_log("DashboardController::index error: " . $e->getMessage());
-            echo "<script>alert('Failed to load dashboard'); window.history.back();</script>";
+            setFlash('error', 'Failed to load dashboard');
+            header("Location: index.php");
+            exit;
         }
     }
 }

@@ -197,3 +197,40 @@ th a {
     .btn:hover {
         background-color: #0056b3;
     }
+/* Flash messages container */
+.flash-container {
+    position: absolute;
+    bottom: -35px;  /* just below nav bar */
+    right: 10px;    /* aligned to right */
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 999;
+}
+
+/* Individual flash message */
+.flash-message {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px; /* pill shape */
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    text-align: center;
+    min-width: 120px;
+    opacity: 1;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Types of messages */
+.flash-success { background-color: #4cc25a; } /* green */
+.flash-error   { background-color: #e74c3c; } /* red */
+.flash-info    { background-color: #3498db; } /* blue */
+
+/* Optional fade-out animation for JS */
+.flash-message.fade-out {
+    opacity: 0;
+    transform: translateY(-5px);
+}
+

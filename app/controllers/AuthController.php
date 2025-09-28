@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../helpers/flash.php';
 
 class AuthController
 {
@@ -15,7 +16,9 @@ class AuthController
         try {
             include __DIR__ . '/../views/auth/login.php';
         } catch (Exception $e) {
-            echo "<script>alert('Failed to load login page'); window.location='index.php';</script>";
+            setFlash('error', 'Failed to load login page');
+            header("Location: index.php");
+            exit;
         }
     }
 
@@ -29,7 +32,8 @@ class AuthController
         $password = $_POST['password'] ?? '';
 
         if (!$email || !$password) {
-            echo "<script>alert('Email and password are required'); window.location='index.php';</script>";
+            setFlash('error', 'Email and password are required');
+            header("Location: index.php");
             exit;
         }
 
@@ -37,7 +41,8 @@ class AuthController
             $user = $this->userModel->findByEmail($email);
 
             if (!$user || !password_verify($password, $user['password'])) {
-                echo "<script>alert('Invalid email or password'); window.location='index.php';</script>";
+                setFlash('error', 'Invalid email or password');
+                header("Location: index.php");
                 exit;
             }
 
@@ -48,14 +53,15 @@ class AuthController
                 'role' => $user['role']
             ];
 
-            if (in_array($user['role'], ['employee', 'tl'])) {
-                header("Location: index.php?controller=Task&action=index");
-            } else {
-                header("Location: index.php?controller=User&action=index");
-            }
+            $redirect = in_array($user['role'], ['employee', 'tl'])
+                ? "index.php?controller=Task&action=index"
+                : "index.php?controller=User&action=index";
+
+            header("Location: $redirect");
             exit;
         } catch (Exception $e) {
-            echo "<script>alert('Login failed'); window.location='index.php';</script>";
+            setFlash('error', 'Login failed');
+            header("Location: index.php");
             exit;
         }
     }
@@ -72,7 +78,8 @@ class AuthController
             header("Location: index.php");
             exit;
         } catch (Exception $e) {
-            echo "<script>alert('Failed to logout'); window.location='index.php';</script>";
+            setFlash('error', 'Failed to logout');
+            header("Location: index.php");
             exit;
         }
     }

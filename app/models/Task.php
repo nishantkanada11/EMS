@@ -8,42 +8,43 @@ class Task
         $this->conn = $db;
     }
 
-    public function all(): array
-    {
-        try {
-            $sql = "SELECT t.*, u.name AS assigned_user
-                    FROM tasks t
-                    LEFT JOIN users u ON t.assigned_to = u.id
-                    ORDER BY t.id DESC";
+    public function all(string $sort = 'id', string $order = 'DESC'): array
+{
+    try {
+        $sql = "SELECT t.*, u.name AS assigned_user
+                FROM tasks t
+                LEFT JOIN users u ON t.assigned_to = u.id
+                ORDER BY $sort $order";
 
-            $res = $this->conn->query($sql);
-            return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
-        } catch (Exception $e) {
-            error_log("Task::all error: " . $e->getMessage());
-            return [];
-        }
+        $res = $this->conn->query($sql);
+        return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+    } catch (Exception $e) {
+        error_log("Task::all error: " . $e->getMessage());
+        return [];
     }
+}
 
-    public function findByUser(int $userId): array
-    {
-        try {
-            $sql = "SELECT t.*, u.name AS assigned_user
-                    FROM tasks t
-                    LEFT JOIN users u ON t.assigned_to = u.id
-                    WHERE t.assigned_to = ?
-                    ORDER BY t.id DESC";
+public function findByUser(int $userId, string $sort = 'id', string $order = 'DESC'): array
+{
+    try {
+        $sql = "SELECT t.*, u.name AS assigned_user
+                FROM tasks t
+                LEFT JOIN users u ON t.assigned_to = u.id
+                WHERE t.assigned_to = ?
+                ORDER BY $sort $order";
 
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
 
-            $result = $stmt->get_result();
-            return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
-        } catch (Exception $e) {
-            error_log("Task::findByUser error: " . $e->getMessage());
-            return [];
-        }
+        $result = $stmt->get_result();
+        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    } catch (Exception $e) {
+        error_log("Task::findByUser error: " . $e->getMessage());
+        return [];
     }
+}
+
 
     public function find(int $id): ?array
     {

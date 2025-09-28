@@ -138,6 +138,18 @@ class User
             return false;
         }
     }
+    // Promote an employee to TL
+public function promote(int $id): bool
+{
+    return $this->changeRole($id, 'tl');
+}
+
+// Demote a TL to employee
+public function demote(int $id): bool
+{
+    return $this->changeRole($id, 'employee');
+}
+
 
     public function delete(int $id): bool
     {

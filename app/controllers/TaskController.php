@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../models/Task.php';
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../helpers/email.php';
+require_once __DIR__ . '/../helpers/flash.php';
 
 class TaskController
 {
@@ -18,22 +19,32 @@ class TaskController
     {
         $role = $_SESSION['user']['role'] ?? '';
         if (!in_array($role, $allowedRoles)) {
-            echo "<script>alert('Access denied'); window.history.back();</script>";
+            setFlash('error', 'Access denied');
+            header("Location: index.php");
             exit;
         }
     }
 
-    public function index()
-    {
-        $role = $_SESSION['user']['role'] ?? '';
-        $userId = $_SESSION['user']['id'] ?? 0;
+public function index()
+{
+    $role = $_SESSION['user']['role'] ?? '';
+    $userId = $_SESSION['user']['id'] ?? 0;
 
-        $tasks = in_array($role, ['admin', 'tl'])
-            ? $this->taskModel->all()
-            : $this->taskModel->findByUser($userId);
+    $sort = $_GET['sort'] ?? 'id';
+    $order = $_GET['order'] ?? 'ASC';
 
-        include __DIR__ . '/../views/tasks/index.php';
-    }
+    // Only allow specific columns to prevent SQL injection
+    $allowedSort = ['id','title','description','assigned_user','status','start_date','due_date'];
+    $allowedOrder = ['ASC','DESC'];
+    if (!in_array($sort, $allowedSort)) $sort = 'id';
+    if (!in_array($order, $allowedOrder)) $order = 'ASC';
+
+    $tasks = in_array($role, ['admin', 'tl'])
+        ? $this->taskModel->all($sort, $order)
+        : $this->taskModel->findByUser($userId, $sort, $order);
+
+    include __DIR__ . '/../views/tasks/index.php';
+}
 
     public function create()
     {
@@ -53,26 +64,32 @@ class TaskController
         $due_date = $_POST['due_date'] ?? '';
 
         if (!$title || !$description || !$start_date || !$due_date) {
-            echo "<script>alert('Please fill all required fields'); window.history.back();</script>";
+            setFlash('error', 'Please fill all required fields');
+            header("Location: index.php?controller=Task&action=create");
             exit;
         }
-
-        $this->taskModel->create($title, $description, $assigned_to, 'pending', $start_date, $due_date);
 
         if (!$assigned_to) {
-            echo "<script>alert('Please assign the task to a user'); window.history.back();</script>";
+            setFlash('error', 'Please assign the task to a user');
+            header("Location: index.php?controller=Task&action=create");
             exit;
         }
 
-        if ($assigned_to) {
+        try {
+            $this->taskModel->create($title, $description, $assigned_to, 'pending', $start_date, $due_date);
             $user = $this->userModel->find($assigned_to);
             if ($user) {
                 sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
             }
-        }
 
-        header("Location: index.php?controller=Task&action=index");
-        exit;
+            setFlash('success', 'Task created and assigned successfully');
+            header("Location: index.php?controller=Task&action=index");
+            exit;
+        } catch (Exception $e) {
+            setFlash('error', 'Failed to create task');
+            header("Location: index.php?controller=Task&action=create");
+            exit;
+        }
     }
 
     public function edit()
@@ -82,7 +99,8 @@ class TaskController
         $task = $this->taskModel->find($id);
 
         if (!$task) {
-            echo "<script>alert('Task not found'); window.history.back();</script>";
+            setFlash('error', 'Task not found');
+            header("Location: index.php?controller=Task&action=index");
             exit;
         }
 
@@ -97,7 +115,8 @@ class TaskController
         $task = $this->taskModel->find($id);
 
         if (!$task) {
-            echo "<script>alert('Task not found'); window.history.back();</script>";
+            setFlash('error', 'Task not found');
+            header("Location: index.php?controller=Task&action=index");
             exit;
         }
 
@@ -109,21 +128,26 @@ class TaskController
         $due_date = $_POST['due_date'] ?? '';
 
         if (!$title || !$description || !$start_date || !$due_date) {
-            echo "<script>alert('Please fill all required fields'); window.history.back();</script>";
+            setFlash('error', 'Please fill all required fields');
+            header("Location: index.php?controller=Task&action=edit&id=$id");
             exit;
         }
 
-        $this->taskModel->update($id, $title, $description, $assigned_to, $status, $start_date, $due_date);
-
-        if ($assigned_to) {
+        try {
+            $this->taskModel->update($id, $title, $description, $assigned_to, $status, $start_date, $due_date);
             $user = $this->userModel->find($assigned_to);
             if ($user) {
                 sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
             }
-        }
 
-        header("Location: index.php?controller=Task&action=index");
-        exit;
+            setFlash('success', 'Task updated successfully');
+            header("Location: index.php?controller=Task&action=index");
+            exit;
+        } catch (Exception $e) {
+            setFlash('error', 'Failed to update task');
+            header("Location: index.php?controller=Task&action=edit&id=$id");
+            exit;
+        }
     }
 
     public function updateStatus()
@@ -133,7 +157,8 @@ class TaskController
         $task = $this->taskModel->find($id);
 
         if (!$task) {
-            echo "<script>alert('Task not found'); window.history.back();</script>";
+            setFlash('error', 'Task not found');
+            header("Location: index.php?controller=Task&action=index");
             exit;
         }
 
@@ -141,11 +166,13 @@ class TaskController
         $userId = $_SESSION['user']['id'] ?? 0;
 
         if ($role === 'employee' && $task['assigned_to'] != $userId) {
-            echo "<script>alert('Access denied'); window.history.back();</script>";
+            setFlash('error', 'Access denied');
+            header("Location: index.php?controller=Task&action=index");
             exit;
         }
 
         $this->taskModel->updateStatus($id, $status);
+        setFlash('success', 'Task status updated');
         header("Location: index.php?controller=Task&action=index");
         exit;
     }
@@ -157,12 +184,20 @@ class TaskController
         $task = $this->taskModel->find($id);
 
         if (!$task) {
-            echo "<script>alert('Task not found'); window.history.back();</script>";
+            setFlash('error', 'Task not found');
+            header("Location: index.php?controller=Task&action=index");
             exit;
         }
 
-        $this->taskModel->delete($id);
-        header("Location: index.php?controller=Task&action=index");
-        exit;
+        try {
+            $this->taskModel->delete($id);
+            setFlash('success', 'Task deleted successfully');
+            header("Location: index.php?controller=Task&action=index");
+            exit;
+        } catch (Exception $e) {
+            setFlash('error', 'Failed to delete task');
+            header("Location: index.php?controller=Task&action=index");
+            exit;
+        }
     }
 }

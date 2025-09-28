@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-$timeout = 120;
+$timeout = 180;
 $flashMessage = '';
 
 if (isset($_SESSION['last_activity'])) {
