@@ -1,8 +1,7 @@
 <?php
 session_start();
 
-$timeout = 180;
-$flashMessage = '';
+$timeout = 120; // 20s
 
 if (isset($_SESSION['last_activity'])) {
     $inactive = time() - $_SESSION['last_activity'];
@@ -10,9 +9,10 @@ if (isset($_SESSION['last_activity'])) {
     if ($inactive >= $timeout) {
         session_unset();
         session_destroy();
-        $flashMessage = "You were logged out due to inactivity.";
+
         session_start();
-        $_SESSION['flash'] = $flashMessage;
+        $_SESSION['flash']['error'][] = "You were logged out due to inactivity.";
+
         header("Location: index.php");
         exit;
     }
@@ -27,6 +27,7 @@ require_once __DIR__ . '/../app/controllers/AuthController.php';
 require_once __DIR__ . '/../app/controllers/UserController.php';
 require_once __DIR__ . '/../app/controllers/TaskController.php';
 require_once __DIR__ . '/../app/controllers/DashboardController.php';
+require_once __DIR__ . '/../app/helpers/flash.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -81,11 +82,4 @@ switch ($controllerName) {
     default:
         echo "404: Controller not found.";
         break;
-}
-
-if (!empty($_SESSION['flash'])) {
-    echo "<div style='position:fixed; top:20px; right:20px; background:#f8d7da; color:#721c24; padding:10px 20px; border-radius:5px; border:1px solid #f5c6cb; font-weight:bold; z-index:1000;'>";
-    echo $_SESSION['flash'];
-    echo "</div>";
-    unset($_SESSION['flash']);
 }

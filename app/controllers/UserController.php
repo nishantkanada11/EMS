@@ -22,31 +22,33 @@ class UserController
         }
     }
 
-public function index()
-{
-    $this->checkAccess(['admin']);
-    $currentUserId = $_SESSION['user']['id'];
+    public function index()
+    {
+        $this->checkAccess(['admin']);
+        $currentUserId = $_SESSION['user']['id'];
 
-    $sort = $_GET['sort'] ?? 'id';
-    $order = $_GET['order'] ?? 'ASC';
+        $sort = $_GET['sort'] ?? 'id';
+        $order = $_GET['order'] ?? 'ASC';
 
-    $allowedSort = ['id', 'name', 'email', 'mobile', 'role', 'department'];
-    $allowedOrder = ['ASC', 'DESC'];
+        $allowedSort = ['id', 'name', 'email', 'mobile', 'role', 'department'];
+        $allowedOrder = ['ASC', 'DESC'];
 
-    if (!in_array($sort, $allowedSort)) $sort = 'id';
-    if (!in_array(strtoupper($order), $allowedOrder)) $order = 'ASC';
+        if (!in_array($sort, $allowedSort))
+            $sort = 'id';
+        if (!in_array(strtoupper($order), $allowedOrder))
+            $order = 'ASC';
 
-    $nextOrder = $order === 'ASC' ? 'DESC' : 'ASC';
+        $nextOrder = $order === 'ASC' ? 'DESC' : 'ASC';
 
-    try {
-        $users = $this->userModel->all($currentUserId, $sort, $order);
-        include __DIR__ . '/../views/users/index.php';
-    } catch (Exception $e) {
-        setFlash('error', 'Failed to load users');
-        header("Location: index.php");
-        exit;
+        try {
+            $users = $this->userModel->all($currentUserId, $sort, $order);
+            include __DIR__ . '/../views/users/index.php';
+        } catch (Exception $e) {
+            setFlash('error', 'Failed to load users');
+            header("Location: index.php");
+            exit;
+        }
     }
-}
 
 
     public function create()
@@ -66,10 +68,18 @@ public function index()
         $department = trim($_POST['department'] ?? '');
         $userRole = ($_SESSION['user']['role'] === 'tl') ? 'employee' : ($_POST['role'] ?? 'employee');
 
+        // Validation
         if (!$name || !$email || !$mobile || !$password || !$department) {
             setFlash('error', 'Please fill all fields');
-            header("Location: index.php?controller=User&action=create");
-            exit;
+            $old = [
+                'name' => $name,
+                'email' => $email,
+                'mobile' => $mobile,
+                'department' => $department,
+                'role' => $userRole
+            ];
+            include __DIR__ . '/../views/users/create.php';
+            return;
         }
 
         try {
@@ -77,8 +87,15 @@ public function index()
 
             if ($result === "exists") {
                 setFlash('error', 'Email or mobile already exists');
-                header("Location: index.php?controller=User&action=create");
-                exit;
+                $old = [
+                    'name' => $name,
+                    'email' => $email,
+                    'mobile' => $mobile,
+                    'department' => $department,
+                    'role' => $userRole
+                ];
+                include __DIR__ . '/../views/users/create.php';
+                return;
             }
 
             sendUserCredentials($email, $name, $password);
@@ -88,10 +105,18 @@ public function index()
             exit;
         } catch (Exception $e) {
             setFlash('error', 'Failed to create user');
-            header("Location: index.php?controller=User&action=create");
-            exit;
+            $old = [
+                'name' => $name,
+                'email' => $email,
+                'mobile' => $mobile,
+                'department' => $department,
+                'role' => $userRole
+            ];
+            include __DIR__ . '/../views/users/create.php';
+            return;
         }
     }
+
 
     public function edit()
     {
@@ -141,8 +166,16 @@ public function index()
 
         if (!$name || !$email || !$mobile || !$department) {
             setFlash('error', 'Please fill all fields');
-            header("Location: index.php?controller=User&action=edit&id=$id");
-            exit;
+            $user = [
+                'id' => $id,
+                'name' => $name,
+                'email' => $email,
+                'mobile' => $mobile,
+                'department' => $department,
+                'role' => $role
+            ];
+            include __DIR__ . '/../views/users/edit.php';
+            return;
         }
 
         try {
@@ -166,10 +199,19 @@ public function index()
             exit;
         } catch (Exception $e) {
             setFlash('error', 'Failed to update user');
-            header("Location: index.php?controller=User&action=edit&id=$id");
-            exit;
+            $user = [
+                'id' => $id,
+                'name' => $name,
+                'email' => $email,
+                'mobile' => $mobile,
+                'department' => $department,
+                'role' => $role
+            ];
+            include __DIR__ . '/../views/users/edit.php';
+            return;
         }
     }
+
 
     public function delete()
     {
@@ -187,7 +229,7 @@ public function index()
             exit;
         }
     }
-    
+
     public function promote()
     {
         $this->checkAccess(['admin']);

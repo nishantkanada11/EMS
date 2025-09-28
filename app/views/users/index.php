@@ -8,12 +8,13 @@
 <div class="table-wrapper">
     <table border="1" cellpadding="10">
         <tr>
-       <?php
+            <?php
             $columns = ['id' => 'ID', 'name' => 'Name', 'email' => 'Email', 'mobile' => 'Mobile', 'role' => 'Role', 'department' => 'Department'];
             foreach ($columns as $col => $label):
-            ?>
-              <th>
-                    <a href="index.php?controller=User&action=index&sort=<?= $col ?>&order=<?= ($col === $sort) ? ($order === 'ASC' ? 'DESC' : 'ASC') : 'ASC' ?>">
+                ?>
+                <th>
+                    <a
+                        href="index.php?controller=User&action=index&sort=<?= $col ?>&order=<?= ($col === $sort) ? ($order === 'ASC' ? 'DESC' : 'ASC') : 'ASC' ?>">
                         <?= $label ?>
                     </a>
                 </th>
@@ -32,7 +33,7 @@
                 <td>
                     <a href="index.php?controller=User&action=edit&id=<?= $user['id']; ?>">Edit</a> |
                     <a href="index.php?controller=User&action=delete&id=<?= $user['id']; ?>"
-                       onclick="return confirm('Are you sure?')">Delete</a> |
+                        onclick="return confirm('Are you sure?')">Delete</a> |
                     <?php if ($user['role'] === 'employee'): ?>
                         <a href="index.php?controller=User&action=promote&id=<?= $user['id']; ?>">Promote to TL</a>
                     <?php elseif ($user['role'] === 'tl'): ?>

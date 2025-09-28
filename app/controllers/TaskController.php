@@ -25,26 +25,27 @@ class TaskController
         }
     }
 
-public function index()
-{
-    $role = $_SESSION['user']['role'] ?? '';
-    $userId = $_SESSION['user']['id'] ?? 0;
+    public function index()
+    {
+        $role = $_SESSION['user']['role'] ?? '';
+        $userId = $_SESSION['user']['id'] ?? 0;
 
-    $sort = $_GET['sort'] ?? 'id';
-    $order = $_GET['order'] ?? 'ASC';
+        $sort = $_GET['sort'] ?? 'id';
+        $order = $_GET['order'] ?? 'ASC';
 
-    // Only allow specific columns to prevent SQL injection
-    $allowedSort = ['id','title','description','assigned_user','status','start_date','due_date'];
-    $allowedOrder = ['ASC','DESC'];
-    if (!in_array($sort, $allowedSort)) $sort = 'id';
-    if (!in_array($order, $allowedOrder)) $order = 'ASC';
+        $allowedSort = ['id', 'title', 'description', 'assigned_user', 'status', 'start_date', 'due_date'];
+        $allowedOrder = ['ASC', 'DESC'];
+        if (!in_array($sort, $allowedSort))
+            $sort = 'id';
+        if (!in_array($order, $allowedOrder))
+            $order = 'ASC';
 
-    $tasks = in_array($role, ['admin', 'tl'])
-        ? $this->taskModel->all($sort, $order)
-        : $this->taskModel->findByUser($userId, $sort, $order);
+        $tasks = in_array($role, ['admin', 'tl'])
+            ? $this->taskModel->all($sort, $order)
+            : $this->taskModel->findByUser($userId, $sort, $order);
 
-    include __DIR__ . '/../views/tasks/index.php';
-}
+        include __DIR__ . '/../views/tasks/index.php';
+    }
 
     public function create()
     {
@@ -63,6 +64,15 @@ public function index()
         $start_date = $_POST['start_date'] ?? '';
         $due_date = $_POST['due_date'] ?? '';
 
+        //ld input
+        $_SESSION['old'] = [
+            'title' => $title,
+            'description' => $description,
+            'assigned_to' => $assigned_to,
+            'start_date' => $start_date,
+            'due_date' => $due_date
+        ];
+
         if (!$title || !$description || !$start_date || !$due_date) {
             setFlash('error', 'Please fill all required fields');
             header("Location: index.php?controller=Task&action=create");
@@ -77,6 +87,8 @@ public function index()
 
         try {
             $this->taskModel->create($title, $description, $assigned_to, 'pending', $start_date, $due_date);
+            unset($_SESSION['old']); // clear old inpuon success
+
             $user = $this->userModel->find($assigned_to);
             if ($user) {
                 sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
@@ -90,22 +102,6 @@ public function index()
             header("Location: index.php?controller=Task&action=create");
             exit;
         }
-    }
-
-    public function edit()
-    {
-        $this->checkAccess(['admin', 'tl']);
-        $id = (int) ($_GET['id'] ?? 0);
-        $task = $this->taskModel->find($id);
-
-        if (!$task) {
-            setFlash('error', 'Task not found');
-            header("Location: index.php?controller=Task&action=index");
-            exit;
-        }
-
-        $employees = $this->userModel->getAssignableUsers();
-        include __DIR__ . '/../views/tasks/edit.php';
     }
 
     public function update()
@@ -127,6 +123,16 @@ public function index()
         $start_date = $_POST['start_date'] ?? '';
         $due_date = $_POST['due_date'] ?? '';
 
+        //old input
+        $_SESSION['old'] = [
+            'title' => $title,
+            'description' => $description,
+            'assigned_to' => $assigned_to,
+            'status' => $status,
+            'start_date' => $start_date,
+            'due_date' => $due_date
+        ];
+
         if (!$title || !$description || !$start_date || !$due_date) {
             setFlash('error', 'Please fill all required fields');
             header("Location: index.php?controller=Task&action=edit&id=$id");
@@ -135,6 +141,8 @@ public function index()
 
         try {
             $this->taskModel->update($id, $title, $description, $assigned_to, $status, $start_date, $due_date);
+            unset($_SESSION['old']); // clear old input on success
+
             $user = $this->userModel->find($assigned_to);
             if ($user) {
                 sendTaskAssignedEmail($user['email'], $user['name'], $title, $description, $start_date, $due_date);
@@ -148,6 +156,23 @@ public function index()
             header("Location: index.php?controller=Task&action=edit&id=$id");
             exit;
         }
+    }
+
+
+    public function edit()
+    {
+        $this->checkAccess(['admin', 'tl']);
+        $id = (int) ($_GET['id'] ?? 0);
+        $task = $this->taskModel->find($id);
+
+        if (!$task) {
+            setFlash('error', 'Task not found');
+            header("Location: index.php?controller=Task&action=index");
+            exit;
+        }
+
+        $employees = $this->userModel->getAssignableUsers();
+        include __DIR__ . '/../views/tasks/edit.php';
     }
 
     public function updateStatus()
