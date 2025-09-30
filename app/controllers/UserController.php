@@ -68,7 +68,20 @@ class UserController
         $department = trim($_POST['department'] ?? '');
         $userRole = ($_SESSION['user']['role'] === 'tl') ? 'employee' : ($_POST['role'] ?? 'employee');
 
-        // Validation
+
+        $profilePicName = null;
+        if (!empty($_FILES['profile_picture']['name'])) {
+            $targetDir = __DIR__ . '/../../public/uploads/';
+
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0777, true);
+            }
+            $ext = pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION);
+            $profilePicName = 'profile_' . time() . '.' . $ext;
+            move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName);
+        }
+
+        //check filed empty or not
         if (!$name || !$email || !$mobile || !$password || !$department) {
             setFlash('error', 'Please fill all fields');
             $old = [
@@ -83,8 +96,7 @@ class UserController
         }
 
         try {
-            $result = $this->userModel->create($name, $email, $mobile, $password, $userRole, $department);
-
+            $result = $this->userModel->create($name, $email, $mobile, $password, $userRole, $department, $profilePicName);
             if ($result === "exists") {
                 setFlash('error', 'Email or mobile already exists');
                 $old = [
@@ -116,7 +128,6 @@ class UserController
             return;
         }
     }
-
 
     public function edit()
     {
@@ -151,18 +162,40 @@ class UserController
         $currentUserId = $_SESSION['user']['id'] ?? 0;
         $currentUserRole = $_SESSION['user']['role'] ?? '';
 
+        // ✅ Security check
         if ($currentUserRole !== 'admin' && $id !== $currentUserId) {
             setFlash('error', 'Access denied');
             header("Location: index.php");
             exit;
         }
 
+        // ✅ Collect fields
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $mobile = trim($_POST['mobile'] ?? '');
         $department = trim($_POST['department'] ?? '');
         $password = $_POST['password'] ?? '';
-        $role = ($currentUserRole === 'admin') ? ($_POST['role'] ?? 'employee') : $this->userModel->find($id)['role'];
+        $role = ($currentUserRole === 'admin')
+            ? ($_POST['role'] ?? 'employee')
+            : $this->userModel->find($id)['role'];
+
+        //imageupload
+        $profilePicName = null;
+        if (!empty($_FILES['profile_picture']['name'])) {
+            $targetDir = __DIR__ . '/../../public/uploads/';
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0777, true);
+            }
+
+            $ext = pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION);
+            $profilePicName = 'profile_' . time() . '.' . $ext;
+
+            if (!move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName)) {
+                setFlash('error', 'File upload failed');
+                header("Location: index.php?controller=User&action=edit&id=$id");
+                exit;
+            }
+        }
 
         if (!$name || !$email || !$mobile || !$department) {
             setFlash('error', 'Please fill all fields');
@@ -179,14 +212,23 @@ class UserController
         }
 
         try {
-            $this->userModel->update($id, $name, $email, $mobile, $role, $department);
+            $this->userModel->update($id, $name, $email, $mobile, $role, $department, $profilePicName);
 
             if (!empty($password)) {
                 $this->userModel->updatePassword($id, $password);
             }
 
+            //update sess
             if ($id === $currentUserId) {
                 $_SESSION['user']['name'] = $name;
+                $_SESSION['user']['email'] = $email;
+                $_SESSION['user']['mobile'] = $mobile;
+                $_SESSION['user']['department'] = $department;
+                $_SESSION['user']['role'] = $role;
+
+                if ($profilePicName) {
+                    $_SESSION['user']['profile_image'] = $profilePicName; // fixed key
+                }
             }
 
             setFlash('success', 'User updated successfully');
@@ -197,6 +239,7 @@ class UserController
                 header("Location: index.php?controller=Task&action=index&id=" . $currentUserId);
             }
             exit;
+
         } catch (Exception $e) {
             setFlash('error', 'Failed to update user');
             $user = [
@@ -211,7 +254,6 @@ class UserController
             return;
         }
     }
-
 
     public function delete()
     {

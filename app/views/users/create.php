@@ -16,7 +16,8 @@
     unset($_SESSION['flash']['success']); ?></div>
 <?php endif; ?>
 
-<form method="POST" action="index.php?controller=User&action=store">
+<form method="POST" action="index.php?controller=User&action=store" enctype="multipart/form-data">
+
     <div class="form-group">
         <label>Full Name</label>
         <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($old['name'] ?? '') ?>">
@@ -54,6 +55,12 @@
             <input type="radio" name="role" value="employee" checked> Employee
         <?php endif; ?>
     </div>
+
+    <div class="form-group">
+        <label>Profile Picture</label>
+        <input type="file" name="profile_picture" class="form-control">
+    </div>
+
 
     <button type="submit" class="btn btn-primary">Add</button>
 </form>

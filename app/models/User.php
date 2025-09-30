@@ -69,7 +69,7 @@ class User
         }
     }
 
-    public function create(string $name, string $email, string $mobile, string $password, string $role, string $department)
+    public function create(string $name, string $email, string $mobile, string $password, string $role, string $department, ?string $profilePicture = null)
     {
         try {
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE TRIM(email)=? OR TRIM(mobile)=?");
@@ -80,10 +80,12 @@ class User
                 return "exists";
 
             $hashed = password_hash($password, PASSWORD_BCRYPT);
+
             $stmt = $this->conn->prepare(
-                "INSERT INTO users (name, email, mobile, password, role, department) VALUES (?, ?, ?, ?, ?, ?)"
+                "INSERT INTO users (name, email, mobile, password, role, department, profile_image) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->bind_param("ssssss", $name, $email, $mobile, $hashed, $role, $department);
+            $stmt->bind_param("sssssss", $name, $email, $mobile, $hashed, $role, $department, $profilePicture);
             return $stmt->execute();
         } catch (Exception $e) {
             error_log("User::create error: " . $e->getMessage());
@@ -91,28 +93,61 @@ class User
         }
     }
 
-    public function update(int $id, string $name, string $email, string $mobile, string $role, string $department)
-    {
+
+    public function update(
+        int $id,
+        string $name,
+        string $email,
+        string $mobile,
+        string $role,
+        string $department,
+        ?string $profilePicture = null
+    ) {
         try {
+            //same mail
             $stmt = $this->conn->prepare(
-                "SELECT id FROM users WHERE (TRIM(email)=? OR TRIM(mobile)=?) AND id != ?"
+                "SELECT id FROM users WHERE (TRIM(email) = ? OR TRIM(mobile) = ?) AND id != ?"
             );
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $this->conn->error);
+            }
             $stmt->bind_param("ssi", $email, $mobile, $id);
             $stmt->execute();
             $res = $stmt->get_result();
-            if ($res && $res->num_rows > 0)
-                return "exists";
+            if ($res && $res->num_rows > 0) {
+                return "exists"; // handled in controller
+            }
 
-            $stmt = $this->conn->prepare(
-                "UPDATE users SET name=?, email=?, mobile=?, role=?, department=? WHERE id=?"
-            );
-            $stmt->bind_param("sssssi", $name, $email, $mobile, $role, $department, $id);
+            //pdate with-without profile image
+            if ($profilePicture) {
+                $stmt = $this->conn->prepare(
+                    "UPDATE users 
+                 SET name = ?, email = ?, mobile = ?, role = ?, department = ?, profile_image = ? 
+                 WHERE id = ?"
+                );
+                if (!$stmt) {
+                    throw new Exception("Prepare failed: " . $this->conn->error);
+                }
+                $stmt->bind_param("ssssssi", $name, $email, $mobile, $role, $department, $profilePicture, $id);
+            } else {
+                $stmt = $this->conn->prepare(
+                    "UPDATE users 
+                 SET name = ?, email = ?, mobile = ?, role = ?, department = ? 
+                 WHERE id = ?"
+                );
+                if (!$stmt) {
+                    throw new Exception("Prepare failed: " . $this->conn->error);
+                }
+                $stmt->bind_param("sssssi", $name, $email, $mobile, $role, $department, $id);
+            }
+
             return $stmt->execute();
         } catch (Exception $e) {
             error_log("User::update error: " . $e->getMessage());
             return false;
         }
     }
+
 
     public function updatePassword(int $id, string $password): bool
     {
@@ -138,17 +173,16 @@ class User
             return false;
         }
     }
-    // Promote an employee to TL
-public function promote(int $id): bool
-{
-    return $this->changeRole($id, 'tl');
-}
 
-// Demote a TL to employee
-public function demote(int $id): bool
-{
-    return $this->changeRole($id, 'employee');
-}
+    public function promote(int $id): bool
+    {
+        return $this->changeRole($id, 'tl');
+    }
+    
+    public function demote(int $id): bool
+    {
+        return $this->changeRole($id, 'employee');
+    }
 
 
     public function delete(int $id): bool

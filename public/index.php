@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-$timeout = 120; // 20s
+$timeout = 180; // 20s
 
 if (isset($_SESSION['last_activity'])) {
     $inactive = time() - $_SESSION['last_activity'];

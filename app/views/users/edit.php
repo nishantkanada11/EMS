@@ -5,7 +5,8 @@
 <?php $old = $_SESSION['old'] ?? [];
 unset($_SESSION['old']); ?>
 
-<form action="index.php?controller=User&action=update" method="POST">
+<form action="index.php?controller=User&action=update" method="POST" enctype="multipart/form-data">
+
        <input type="hidden" name="id" value="<?= $user['id']; ?>">
 
        <label>Name:</label><br>
@@ -37,7 +38,14 @@ unset($_SESSION['old']); ?>
        <label>New Password (leave blank to keep current):</label><br>
        <input type="text" name="password" value="<?= htmlspecialchars($old['password'] ?? ''); ?>"><br><br>
 
+       <label>Profile Picture:</label><br>
+       <img src="uploads/<?= htmlspecialchars($user['profile_image'] ?? 'default.png'); ?>" width="80" height="80"
+              alt="Current Profile">
+       <input type="file" name="profile_picture"><br><br>
+
+
        <button type="submit">Update User</button>
 </form>
+
 
 <?php include __DIR__ . '/../layouts/footer.php'; ?>

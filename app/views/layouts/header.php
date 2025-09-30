@@ -58,9 +58,19 @@ $flashMessages = getFlashMessages();
             <?php endif; ?>
         </div>
 
-        <div>
+        <div class="profile" style="display:flex; align-items:center; gap:10px;">
+            <?php
+            //Pick profile image from session
+            $profileImage = !empty($_SESSION['user']['profile_image'])
+                ? 'uploads/' . $_SESSION['user']['profile_image']
+                : 'uploads/default.png';
+            ?>
+
             <?php if (!empty($_SESSION['user']['name'])): ?>
                 <span><?= htmlspecialchars($_SESSION['user']['name']); ?></span>
+                <img src="<?= htmlspecialchars($profileImage); ?>" alt="Profile Picture"
+                    style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #ddd;">
             <?php endif; ?>
         </div>
+
     </nav>

@@ -50,7 +50,9 @@ class AuthController
                 'id' => $user['id'],
                 'name' => $user['name'],
                 'email' => $user['email'],
-                'role' => $user['role']
+                'role' => $user['role'],
+                'department' => $user['department'] ?? null,
+                'profile_image' => $user['profile_image'] ?? null
             ];
 
             $redirect = in_array($user['role'], ['employee', 'tl'])

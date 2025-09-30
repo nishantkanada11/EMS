@@ -240,3 +240,22 @@ input[type="radio"] {
 span {
     color: white;
 }
+
+/* Profile section inside nav */
+nav .profile {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* space between name and image */
+    color: white;
+}
+
+/* Profile picture styling */
+nav .profile img {
+    width: 40px;       /* fixed size */
+    height: 40px;      /* fixed size */
+    border-radius: 50%; /* make it round */
+    object-fit: cover; /* crop to fit nicely */
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
