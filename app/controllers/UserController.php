@@ -162,14 +162,14 @@ class UserController
         $currentUserId = $_SESSION['user']['id'] ?? 0;
         $currentUserRole = $_SESSION['user']['role'] ?? '';
 
-        // ✅ Security check
+        // Security check
         if ($currentUserRole !== 'admin' && $id !== $currentUserId) {
             setFlash('error', 'Access denied');
             header("Location: index.php");
             exit;
         }
 
-        // ✅ Collect fields
+        // Collect fields
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $mobile = trim($_POST['mobile'] ?? '');
