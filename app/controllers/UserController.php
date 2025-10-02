@@ -33,12 +33,8 @@ class UserController
         $allowedSort = ['id', 'name', 'email', 'mobile', 'role', 'department'];
         $allowedOrder = ['ASC', 'DESC'];
 
-        if (!in_array($sort, $allowedSort))
-            $sort = 'id';
-        if (!in_array(strtoupper($order), $allowedOrder))
-            $order = 'ASC';
-
-        $nextOrder = $order === 'ASC' ? 'DESC' : 'ASC';
+        if (!in_array($sort, $allowedSort)) $sort = 'id';
+        if (!in_array(strtoupper($order), $allowedOrder)) $order = 'ASC';
 
         try {
             $users = $this->userModel->all($currentUserId, $sort, $order);
@@ -49,7 +45,6 @@ class UserController
             exit;
         }
     }
-
 
     public function create()
     {
@@ -66,67 +61,100 @@ class UserController
         $mobile = trim($_POST['mobile'] ?? '');
         $password = $_POST['password'] ?? '';
         $department = trim($_POST['department'] ?? '');
-        $userRole = ($_SESSION['user']['role'] === 'tl') ? 'employee' : ($_POST['role'] ?? 'employee');
-
+        $currentRole = $_SESSION['user']['role'];
 
         $profilePicName = null;
         if (!empty($_FILES['profile_picture']['name'])) {
             $targetDir = __DIR__ . '/../../public/uploads/';
+            if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
 
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0777, true);
-            }
             $ext = pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION);
             $profilePicName = 'profile_' . time() . '.' . $ext;
             move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName);
         }
 
-        //check filed empty or not
         if (!$name || !$email || !$mobile || !$password || !$department) {
             setFlash('error', 'Please fill all fields');
-            $old = [
-                'name' => $name,
-                'email' => $email,
-                'mobile' => $mobile,
-                'department' => $department,
-                'role' => $userRole
-            ];
             include __DIR__ . '/../views/users/create.php';
             return;
         }
 
         try {
-            $result = $this->userModel->create($name, $email, $mobile, $password, $userRole, $department, $profilePicName);
-            if ($result === "exists") {
-                setFlash('error', 'Email or mobile already exists');
-                $old = [
-                    'name' => $name,
-                    'email' => $email,
-                    'mobile' => $mobile,
-                    'department' => $department,
-                    'role' => $userRole
-                ];
-                include __DIR__ . '/../views/users/create.php';
-                return;
+            if ($currentRole === 'tl') {
+                // TL creates a request, not a user directly
+                $result = $this->userModel->createEmployeeRequest(
+                    $name, $email, $mobile, $password, $department, $profilePicName, $_SESSION['user']['id']
+                );
+
+                if ($result === "exists") {
+                    setFlash('error', 'Email or mobile already exists in requests');
+                } else {
+                    setFlash('success', 'Request submitted to Admin for approval');
+                }
+                header("Location: index.php?controller=User&action=team");
+                exit;
+
+            } else {
+                // Admin creates directly
+                $result = $this->userModel->create($name, $email, $mobile, $password, 'employee', $department, $profilePicName);
+
+                if ($result === "exists") {
+                    setFlash('error', 'Email or mobile already exists');
+                    include __DIR__ . '/../views/users/create.php';
+                    return;
+                }
+
+                sendUserCredentials($email, $name, $password);
+                setFlash('success', 'User created successfully');
+                header("Location: index.php?controller=User&action=index");
+                exit;
             }
 
-            sendUserCredentials($email, $name, $password);
-            setFlash('success', 'User created successfully and email sent');
-            $redirect = ($_SESSION['user']['role'] === 'tl') ? "team" : "index";
-            header("Location: index.php?controller=User&action=$redirect");
-            exit;
         } catch (Exception $e) {
-            setFlash('error', 'Failed to create user');
-            $old = [
-                'name' => $name,
-                'email' => $email,
-                'mobile' => $mobile,
-                'department' => $department,
-                'role' => $userRole
-            ];
+            setFlash('error', 'Failed to process request');
             include __DIR__ . '/../views/users/create.php';
             return;
         }
+    }
+
+    //see pending employe
+    public function requests()
+    {
+        $this->checkAccess(['admin']);
+        try {
+            $requests = $this->userModel->getEmployeeRequests();
+            include __DIR__ . '/../views/users/requests.php';
+        } catch (Exception $e) {
+            setFlash('error', 'Failed to load requests');
+            header("Location: index.php");
+            exit;
+        }
+    }
+
+    public function approveRequest()
+    {
+        $this->checkAccess(['admin']);
+        $id = (int) ($_GET['id'] ?? 0);
+        if ($this->userModel->approveEmployeeRequest($id)) {
+            setFlash('success', 'Employee request approved and user created');
+        } else {
+            setFlash('error', 'Failed to approve request');
+        }
+        header("Location: index.php?controller=User&action=requests");
+        exit;
+    }
+
+    public function rejectRequest()
+    {
+        $this->checkAccess(['admin']);
+        $id = (int) ($_GET['id'] ?? 0);
+        if ($this->userModel->rejectEmployeeRequest($id)) {
+            setFlash('success', 'Employee request rejected');
+        } else {
+            setFlash('error', 'Failed to reject request');
+        }
+        header("Location: index.php?controller=User&action=requests");
+        exit;
     }
 
     public function edit()

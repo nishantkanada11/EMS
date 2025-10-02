@@ -40,6 +40,7 @@ $flashMessages = getFlashMessages();
                     <a href="index.php?controller=Task&action=index">Tasks</a>
                     <a href="index.php?controller=Dashboard&action=index">Dashboard</a>
                     <a href="index.php?controller=User&action=teamsOverview">View Team</a>
+                    <a href="index.php?controller=User&action=requests">Requests</a>
                     <a href="index.php?controller=User&action=edit&id=<?= $_SESSION['user']['id']; ?>">Edit Profile</a>
 
                 <?php elseif ($role === 'tl'): ?>

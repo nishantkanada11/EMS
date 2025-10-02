@@ -1,7 +1,7 @@
 <?php
 class User
 {
-    private $conn;
+private $conn;
 
     public function __construct($db)
     {
@@ -13,10 +13,8 @@ class User
         $allowedSort = ['id', 'name', 'email', 'mobile', 'role', 'department'];
         $allowedOrder = ['ASC', 'DESC'];
 
-        if (!in_array($sort, $allowedSort))
-            $sort = 'id';
-        if (!in_array($order, $allowedOrder))
-            $order = 'ASC';
+        if (!in_array($sort, $allowedSort)) $sort = 'id';
+        if (!in_array($order, $allowedOrder)) $order = 'ASC';
 
         try {
             if ($excludeId) {
@@ -28,13 +26,7 @@ class User
                 $result = $this->conn->query("SELECT * FROM users ORDER BY $sort $order");
             }
 
-            $users = [];
-            if ($result) {
-                while ($row = $result->fetch_assoc()) {
-                    $users[] = $row;
-                }
-            }
-            return $users;
+            return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
         } catch (Exception $e) {
             error_log("User::all error: " . $e->getMessage());
             return [];
@@ -72,18 +64,17 @@ class User
     public function create(string $name, string $email, string $mobile, string $password, string $role, string $department, ?string $profilePicture = null)
     {
         try {
-            $stmt = $this->conn->prepare("SELECT id FROM users WHERE TRIM(email)=? OR TRIM(mobile)=?");
+            $stmt = $this->conn->prepare("SELECT id FROM users WHERE email=? OR mobile=?");
             $stmt->bind_param("ss", $email, $mobile);
             $stmt->execute();
             $res = $stmt->get_result();
-            if ($res && $res->num_rows > 0)
-                return "exists";
+            if ($res && $res->num_rows > 0) return "exists";
 
             $hashed = password_hash($password, PASSWORD_BCRYPT);
 
             $stmt = $this->conn->prepare(
                 "INSERT INTO users (name, email, mobile, password, role, department, profile_image) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
             $stmt->bind_param("sssssss", $name, $email, $mobile, $hashed, $role, $department, $profilePicture);
             return $stmt->execute();
@@ -93,6 +84,85 @@ class User
         }
     }
 
+    //tl create request
+    public function createEmployeeRequest(string $name, string $email, string $mobile, string $password, string $department, ?string $profilePicture, int $tlId)
+    {
+        try {
+            $stmt = $this->conn->prepare("SELECT id FROM employee_requests WHERE email=? OR mobile=?");
+            $stmt->bind_param("ss", $email, $mobile);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res && $res->num_rows > 0) return "exists";
+
+            $hashed = password_hash($password, PASSWORD_BCRYPT);
+
+            $stmt = $this->conn->prepare(
+                "INSERT INTO employee_requests (name, email, mobile, password, department, profile_image, tl_id) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->bind_param("ssssssi", $name, $email, $mobile, $hashed, $department, $profilePicture, $tlId);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            error_log("User::createEmployeeRequest error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    //pending request
+    public function getEmployeeRequests(): array
+    {
+        try {
+            $sql = "SELECT r.*, u.name AS requested_by_name 
+                    FROM employee_requests r
+                    JOIN users u ON r.tl_id = u.id
+                    WHERE r.status = 'pending'
+                    ORDER BY r.created_at DESC";
+            $res = $this->conn->query($sql);
+            return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+        } catch (Exception $e) {
+            error_log("User::getEmployeeRequests error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    //accept request and move to user
+    public function approveEmployeeRequest(int $id): bool
+    {
+        try {
+            $stmt = $this->conn->prepare("SELECT * FROM employee_requests WHERE id=? AND status='pending'");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $request = $res ? $res->fetch_assoc() : null;
+            if (!$request) return false;
+
+            $stmt = $this->conn->prepare(
+                "INSERT INTO users (name, email, mobile, password, role, department, profile_image) 
+                 VALUES (?, ?, ?, ?, 'employee', ?, ?)"
+            );
+            $stmt->bind_param("ssssss", $request['name'], $request['email'], $request['mobile'], $request['password'], $request['department'], $request['profile_image']);
+            $stmt->execute();
+            
+            $stmt = $this->conn->prepare("UPDATE employee_requests SET status='approved' WHERE id=?");
+            $stmt->bind_param("i", $id);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            error_log("User::approveEmployeeRequest error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function rejectEmployeeRequest(int $id): bool
+    {
+        try {
+            $stmt = $this->conn->prepare("UPDATE employee_requests SET status='rejected' WHERE id=?");
+            $stmt->bind_param("i", $id);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            error_log("User::rejectEmployeeRequest error: " . $e->getMessage());
+            return false;
+        }
+    }
 
     public function update(
         int $id,
@@ -115,7 +185,7 @@ class User
             $stmt->execute();
             $res = $stmt->get_result();
             if ($res && $res->num_rows > 0) {
-                return "exists"; // handled in controller
+                return "exists";
             }
 
             //pdate with-without profile image
