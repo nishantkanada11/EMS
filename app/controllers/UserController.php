@@ -33,8 +33,10 @@ class UserController
         $allowedSort = ['id', 'name', 'email', 'mobile', 'role', 'department'];
         $allowedOrder = ['ASC', 'DESC'];
 
-        if (!in_array($sort, $allowedSort)) $sort = 'id';
-        if (!in_array(strtoupper($order), $allowedOrder)) $order = 'ASC';
+        if (!in_array($sort, $allowedSort))
+            $sort = 'id';
+        if (!in_array(strtoupper($order), $allowedOrder))
+            $order = 'ASC';
 
         try {
             $users = $this->userModel->all($currentUserId, $sort, $order);
@@ -64,14 +66,42 @@ class UserController
         $currentRole = $_SESSION['user']['role'];
 
         $profilePicName = null;
+
         if (!empty($_FILES['profile_picture']['name'])) {
             $targetDir = __DIR__ . '/../../public/uploads/';
-            if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+            if (!is_dir($targetDir))
+                mkdir($targetDir, 0777, true);
 
-            $ext = pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION);
+            // Allowed image types
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $fileType = mime_content_type($_FILES['profile_picture']['tmp_name']);
+
+            if (!in_array($fileType, $allowedTypes)) {
+                setFlash('error', 'Invalid image format. Only JPG, PNG, GIF, and WEBP are allowed.');
+                header("Location: " . $_SERVER['HTTP_REFERER']);
+                exit;
+            }
+
+            // Extra safety check for extension
+            $ext = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+            $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+            if (!in_array($ext, $allowedExts)) {
+                setFlash('error', 'Invalid file extension. Please upload only image files.');
+                header("Location: " . $_SERVER['HTTP_REFERER']);
+                exit;
+            }
+
+            // Generate unique image name
             $profilePicName = 'profile_' . time() . '.' . $ext;
-            move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName);
+
+            if (!move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName)) {
+                setFlash('error', 'Failed to upload image.');
+                header("Location: " . $_SERVER['HTTP_REFERER']);
+                exit;
+            }
         }
+
 
         if (!$name || !$email || !$mobile || !$password || !$department) {
             setFlash('error', 'Please fill all fields');
@@ -83,7 +113,13 @@ class UserController
             if ($currentRole === 'tl') {
                 // TL creates a request, not a user directly
                 $result = $this->userModel->createEmployeeRequest(
-                    $name, $email, $mobile, $password, $department, $profilePicName, $_SESSION['user']['id']
+                    $name,
+                    $email,
+                    $mobile,
+                    $password,
+                    $department,
+                    $profilePicName,
+                    $_SESSION['user']['id']
                 );
 
                 if ($result === "exists") {
@@ -207,23 +243,43 @@ class UserController
             ? ($_POST['role'] ?? 'employee')
             : $this->userModel->find($id)['role'];
 
-        //imageupload
         $profilePicName = null;
+
         if (!empty($_FILES['profile_picture']['name'])) {
             $targetDir = __DIR__ . '/../../public/uploads/';
-            if (!is_dir($targetDir)) {
+            if (!is_dir($targetDir))
                 mkdir($targetDir, 0777, true);
+
+            // Allowed image types
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $fileType = mime_content_type($_FILES['profile_picture']['tmp_name']);
+
+            if (!in_array($fileType, $allowedTypes)) {
+                setFlash('error', 'Invalid image format. Only JPG, PNG, GIF, and WEBP are allowed.');
+                header("Location: " . $_SERVER['HTTP_REFERER']);
+                exit;
             }
 
-            $ext = pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION);
+            // Extra safety check for extension
+            $ext = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+            $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+            if (!in_array($ext, $allowedExts)) {
+                setFlash('error', 'Invalid file extension. Please upload only image files.');
+                header("Location: " . $_SERVER['HTTP_REFERER']);
+                exit;
+            }
+
+            // Generate unique image name
             $profilePicName = 'profile_' . time() . '.' . $ext;
 
             if (!move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName)) {
-                setFlash('error', 'File upload failed');
-                header("Location: index.php?controller=User&action=edit&id=$id");
+                setFlash('error', 'Failed to upload image.');
+                header("Location: " . $_SERVER['HTTP_REFERER']);
                 exit;
             }
         }
+
 
         if (!$name || !$email || !$mobile || !$department) {
             setFlash('error', 'Please fill all fields');
