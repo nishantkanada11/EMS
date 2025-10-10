@@ -72,7 +72,7 @@ class UserController
             if (!is_dir($targetDir))
                 mkdir($targetDir, 0777, true);
 
-            // Allowed image types
+            //image types
             $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             $fileType = mime_content_type($_FILES['profile_picture']['tmp_name']);
 
@@ -82,7 +82,7 @@ class UserController
                 exit;
             }
 
-            // Extra safety check for extension
+            //check for extension
             $ext = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
             $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
@@ -92,7 +92,7 @@ class UserController
                 exit;
             }
 
-            // Generate unique image name
+            //`unique im`age name
             $profilePicName = 'profile_' . time() . '.' . $ext;
 
             if (!move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName)) {
