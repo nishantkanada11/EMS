@@ -20,6 +20,10 @@ if (isset($_SESSION['user'])) {
 
             <button type="submit">Login</button>
         </form>
+        <p>
+            Not registered yet?
+            <a href="index.php?controller=Auth&action=registerForm">Register New User</a>
+        </p>
     </div>
 
     <?php include __DIR__ . '/../layouts/footer.php'; ?>

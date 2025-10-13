@@ -1,7 +1,7 @@
 <?php
 class User
 {
-private $conn;
+    private $conn;
 
     public function __construct($db)
     {
@@ -13,8 +13,10 @@ private $conn;
         $allowedSort = ['id', 'name', 'email', 'mobile', 'role', 'department'];
         $allowedOrder = ['ASC', 'DESC'];
 
-        if (!in_array($sort, $allowedSort)) $sort = 'id';
-        if (!in_array($order, $allowedOrder)) $order = 'ASC';
+        if (!in_array($sort, $allowedSort))
+            $sort = 'id';
+        if (!in_array($order, $allowedOrder))
+            $order = 'ASC';
 
         try {
             if ($excludeId) {
@@ -68,7 +70,8 @@ private $conn;
             $stmt->bind_param("ss", $email, $mobile);
             $stmt->execute();
             $res = $stmt->get_result();
-            if ($res && $res->num_rows > 0) return "exists";
+            if ($res && $res->num_rows > 0)
+                return "exists";
 
             $hashed = password_hash($password, PASSWORD_BCRYPT);
 
@@ -83,40 +86,43 @@ private $conn;
             return false;
         }
     }
+   public function createEmployeeRequest(string $name, string $email, string $mobile, string $password, string $department, ?string $profilePicture, ?int $tlId = null)
+{
+    try {
+        $stmt = $this->conn->prepare("
+            SELECT id FROM users WHERE email=? OR mobile=?
+            UNION
+            SELECT id FROM employee_requests WHERE email=? OR mobile=?
+        ");
+        $stmt->bind_param("ssss", $email, $mobile, $email, $mobile);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $res->num_rows > 0)
+            return "exists";
 
-    //tl create request
-    public function createEmployeeRequest(string $name, string $email, string $mobile, string $password, string $department, ?string $profilePicture, int $tlId)
-    {
-        try {
-            $stmt = $this->conn->prepare("SELECT id FROM employee_requests WHERE email=? OR mobile=?");
-            $stmt->bind_param("ss", $email, $mobile);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            if ($res && $res->num_rows > 0) return "exists";
+        $hashed = password_hash($password, PASSWORD_BCRYPT);
 
-            $hashed = password_hash($password, PASSWORD_BCRYPT);
-
-            $stmt = $this->conn->prepare(
-                "INSERT INTO employee_requests (name, email, mobile, password, department, profile_image, tl_id) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)"
-            );
-            $stmt->bind_param("ssssssi", $name, $email, $mobile, $hashed, $department, $profilePicture, $tlId);
-            return $stmt->execute();
-        } catch (Exception $e) {
-            error_log("User::createEmployeeRequest error: " . $e->getMessage());
-            return false;
-        }
+        $stmt = $this->conn->prepare(
+            "INSERT INTO employee_requests (name, email, mobile, password, department, profile_image, tl_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->bind_param("ssssssi", $name, $email, $mobile, $hashed, $department, $profilePicture, $tlId);
+        return $stmt->execute();
+    } catch (Exception $e) {
+        error_log("User::createEmployeeRequest error: " . $e->getMessage());
+        return false;
     }
+}
 
-    //pending request
+
     public function getEmployeeRequests(): array
     {
         try {
-            $sql = "SELECT r.*, u.name AS requested_by_name 
-                    FROM employee_requests r
-                    JOIN users u ON r.tl_id = u.id
-                    WHERE r.status = 'pending'
-                    ORDER BY r.created_at DESC";
+            $sql = "SELECT r.*, u.name AS requested_by_name
+            FROM employee_requests r
+            LEFT JOIN users u ON r.tl_id = u.id
+            WHERE r.status = 'pending'
+            ORDER BY r.created_at DESC";
             $res = $this->conn->query($sql);
             return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
         } catch (Exception $e) {
@@ -125,7 +131,6 @@ private $conn;
         }
     }
 
-    //accept request and move to user
     public function approveEmployeeRequest(int $id): bool
     {
         try {
@@ -134,7 +139,8 @@ private $conn;
             $stmt->execute();
             $res = $stmt->get_result();
             $request = $res ? $res->fetch_assoc() : null;
-            if (!$request) return false;
+            if (!$request)
+                return false;
 
             $stmt = $this->conn->prepare(
                 "INSERT INTO users (name, email, mobile, password, role, department, profile_image) 
@@ -142,7 +148,7 @@ private $conn;
             );
             $stmt->bind_param("ssssss", $request['name'], $request['email'], $request['mobile'], $request['password'], $request['department'], $request['profile_image']);
             $stmt->execute();
-            
+
             $stmt = $this->conn->prepare("UPDATE employee_requests SET status='approved' WHERE id=?");
             $stmt->bind_param("i", $id);
             return $stmt->execute();
@@ -248,7 +254,7 @@ private $conn;
     {
         return $this->changeRole($id, 'tl');
     }
-    
+
     public function demote(int $id): bool
     {
         return $this->changeRole($id, 'employee');

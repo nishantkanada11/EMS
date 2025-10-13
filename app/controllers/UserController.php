@@ -72,7 +72,6 @@ class UserController
             if (!is_dir($targetDir))
                 mkdir($targetDir, 0777, true);
 
-            //image types
             $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
             $fileType = mime_content_type($_FILES['profile_picture']['tmp_name']);
 
@@ -82,7 +81,6 @@ class UserController
                 exit;
             }
 
-            //check for extension
             $ext = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
             $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
@@ -92,7 +90,6 @@ class UserController
                 exit;
             }
 
-            //`unique im`age name
             $profilePicName = 'profile_' . time() . '.' . $ext;
 
             if (!move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName)) {
@@ -111,7 +108,6 @@ class UserController
 
         try {
             if ($currentRole === 'tl') {
-                // TL creates a request, not a user directly
                 $result = $this->userModel->createEmployeeRequest(
                     $name,
                     $email,
@@ -131,7 +127,6 @@ class UserController
                 exit;
 
             } else {
-                // Admin creates directly
                 $result = $this->userModel->create($name, $email, $mobile, $password, 'employee', $department, $profilePicName);
 
                 if ($result === "exists") {
@@ -153,7 +148,6 @@ class UserController
         }
     }
 
-    //see pending employe
     public function requests()
     {
         $this->checkAccess(['admin']);
@@ -260,7 +254,6 @@ class UserController
                 exit;
             }
 
-            // Extra safety check for extension
             $ext = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
             $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 

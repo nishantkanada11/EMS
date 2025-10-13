@@ -4,8 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../../helpers/flash.php';
-
-$flashMessages = getFlashMessages();
 ?>
 
 <!DOCTYPE html>
@@ -20,6 +18,8 @@ $flashMessages = getFlashMessages();
 <body>
 
     <?php
+
+    $flashMessages = getFlashMessages();
     if (!empty($flashMessages)) {
         foreach ($flashMessages as $type => $messages) {
             foreach ($messages as $msg) {

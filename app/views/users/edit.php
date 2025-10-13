@@ -35,8 +35,12 @@ unset($_SESSION['old']); ?>
        <input type="text" name="department"
               value="<?= htmlspecialchars($old['department'] ?? $user['department']); ?>"><br><br>
 
-       <label>New Password (leave blank to keep current):</label><br>
-       <input type="text" name="password" value="<?= htmlspecialchars($old['password'] ?? ''); ?>"><br><br>
+       <?php if ($_SESSION['user']['role'] === 'admin' && $_SESSION['user']['id'] !== $user['id']): ?>
+              <input type="password" name="password" placeholder="Admin cannot edit employee password" disabled>
+       <?php else: ?>
+              <input type="password" name="password" placeholder="Enter new password (optional)">
+       <?php endif; ?>
+
 
        <label>Profile Picture:</label><br>
        <img src="uploads/<?= htmlspecialchars($user['profile_image'] ?? 'default.png'); ?>" width="80" height="80"

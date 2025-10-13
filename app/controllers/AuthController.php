@@ -22,6 +22,78 @@ class AuthController
         }
     }
 
+    public function registerForm()
+    {
+        require __DIR__ . '/../views/auth/register.php';
+    }
+
+    public function registerRequest()
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        setFlash('error', 'Invalid request method');
+        header("Location: index.php?action=registerForm");
+        exit;
+    }
+
+    $name = trim($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $mobile = trim($_POST['mobile'] ?? '');
+    $department = trim($_POST['department'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $profilePicName = null;
+
+    if (!$name || !$email || !$mobile || !$department || !$password) {
+        setFlash('error', 'Please fill all required fields');
+        header("Location: index.php?action=registerForm");
+        exit;
+    }
+
+    if (!empty($_FILES['profile_picture']['name'])) {
+        $targetDir = __DIR__ . '/../../public/uploads/';
+        if (!is_dir($targetDir))
+            mkdir($targetDir, 0777, true);
+
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $fileType = mime_content_type($_FILES['profile_picture']['tmp_name']);
+        if (!in_array($fileType, $allowedTypes)) {
+            setFlash('error', 'Invalid image format. Only JPG, PNG, GIF, and WEBP are allowed.');
+            header("Location: index.php?action=registerForm");
+            exit;
+        }
+
+        $ext = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+        $profilePicName = 'profile_' . time() . '.' . $ext;
+        move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName);
+    }
+
+    try {
+        $result = $this->userModel->createEmployeeRequest(
+            $name,
+            $email,
+            $mobile,
+            $password,
+            $department,
+            $profilePicName,
+            null // No TL Idpublic registration
+        );
+
+        if ($result === "exists") {
+            setFlash('error', 'Email or mobile already exists in requests.');
+            header("Location: index.php?action=registerForm");
+            exit;
+        }
+
+        setFlash('success', 'Registration request sent to Admin for approval.');
+        header("Location: index.php");
+        exit;
+
+    } catch (Exception $e) {
+        setFlash('error', 'Failed to submit registration request.');
+        header("Location: index.php?action=registerForm");
+        exit;
+    }
+}
+
     public function authenticate()
     {
         if (session_status() === PHP_SESSION_NONE) {
