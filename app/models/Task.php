@@ -8,61 +8,50 @@ class Task
         $this->conn = $db;
     }
 
-    public function all(string $sort = 'id', string $order = 'DESC'): array
-{
-    try {
-        $sql = "SELECT t.*, u.name AS assigned_user
-                FROM tasks t
-                LEFT JOIN users u ON t.assigned_to = u.id
-                ORDER BY $sort $order";
-
-        $res = $this->conn->query($sql);
-        return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
-    } catch (Exception $e) {
-        error_log("Task::all error: " . $e->getMessage());
-        return [];
-    }
-}
-
-public function findByUser(int $userId, string $sort = 'id', string $order = 'DESC'): array
-{
-    try {
-        $sql = "SELECT t.*, u.name AS assigned_user
-                FROM tasks t
-                LEFT JOIN users u ON t.assigned_to = u.id
-                WHERE t.assigned_to = ?
-                ORDER BY $sort $order";
-
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
-    } catch (Exception $e) {
-        error_log("Task::findByUser error: " . $e->getMessage());
-        return [];
-    }
-}
-
-
-    public function find(int $id): ?array
+    public function getTasks(?int $id = null, ?int $userId = null, string $sort = 'id', string $order = 'DESC'): array
     {
+        // Whitelist columns and order
+        $allowedSort = ['id', 'title', 'description', 'assigned_user', 'status', 'start_date', 'due_date'];
+        $allowedOrder = ['ASC', 'DESC'];
+
+        if (!in_array($sort, $allowedSort))
+            $sort = 'id';
+        if (!in_array(strtoupper($order), $allowedOrder))
+            $order = 'ASC';
+
         try {
             $sql = "SELECT t.*, u.name AS assigned_user
-                    FROM tasks t
-                    LEFT JOIN users u ON t.assigned_to = u.id
-                    WHERE t.id = ?";
+                FROM tasks t
+                LEFT JOIN users u ON t.assigned_to = u.id";
 
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param("i", $id);
-            $stmt->execute();
+            $params = [];
+            $types = '';
 
-            $result = $stmt->get_result();
-            return $result ? $result->fetch_assoc() : null;
+            if ($id !== null) {
+                $sql .= " WHERE t.id = ?";
+                $params[] = $id;
+                $types .= 'i';
+            } elseif ($userId !== null) {
+                $sql .= " WHERE t.assigned_to = ?";
+                $params[] = $userId;
+                $types .= 'i';
+            }
+
+            $sql .= " ORDER BY $sort $order";
+
+            if (!empty($params)) {
+                $stmt = $this->conn->prepare($sql);
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                return ($id !== null) ? [$res->fetch_assoc()] : $res->fetch_all(MYSQLI_ASSOC);
+            } else {
+                $res = $this->conn->query($sql);
+                return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+            }
         } catch (Exception $e) {
-            error_log("Task::find error: " . $e->getMessage());
-            return null;
+            error_log("Task::getTasks error: " . $e->getMessage());
+            return [];
         }
     }
 

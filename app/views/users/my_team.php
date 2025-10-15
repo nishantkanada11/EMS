@@ -1,6 +1,6 @@
 <?php include __DIR__ . '/../layouts/header.php'; ?>
 
-<h2>My Team</h2>
+<h2>My Team Members</h2>
 
 <table border="1" cellpadding="8">
     <tr>
@@ -10,8 +10,8 @@
         <th>Department</th>
         <th>Role</th>
     </tr>
-    <?php if (!empty($employees)): ?>
-        <?php foreach ($employees as $emp): ?>
+    <?php if (!empty($teamMembers)): ?>
+        <?php foreach ($teamMembers as $emp): ?>
             <tr>
                 <td><?= $emp['id'] ?></td>
                 <td><?= htmlspecialchars($emp['name']) ?></td>
@@ -26,5 +26,4 @@
         </tr>
     <?php endif; ?>
 </table>
-
 <?php include __DIR__ . '/../layouts/footer.php'; ?>

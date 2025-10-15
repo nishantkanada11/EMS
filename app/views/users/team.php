@@ -33,6 +33,7 @@
             </td>
         </tr>
     <?php endforeach; ?>
+
 </table>
 
 <?php include __DIR__ . '/../layouts/footer.php'; ?>
