@@ -73,7 +73,7 @@ class AuthController
                 move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetDir . $profilePicName);
             }
 
-            $result = $this->userModel->createUserOrRequest($name, $email, $mobile, $password, $department, $profilePicName, null);
+            $result = $this->userModel->createUserOrRequest($name, $email, $mobile, $password, $department, $profilePicName,null, null,true);
 
             if ($result === "exists") {
                 throw new Exception('Email or mobile already exists in requests.');
